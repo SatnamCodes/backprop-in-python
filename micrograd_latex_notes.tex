@@ -155,4 +155,272 @@ class Value:
             node._backward()
 \end{lstlisting}
 
+\section{Step-by-Step Explanation of the Micrograd Notebook}
+
+\subsection{1. Importing Libraries}
+\begin{lstlisting}[language=Python]
+import numpy as np
+import math
+import graphviz
+import matplotlib.pyplot as plt
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item \texttt{numpy (np)}: Helps us work with numbers and arrays easily.
+    \item \texttt{math}: Lets us use mathematical functions like exponentials.
+    \item \texttt{graphviz}: Used to draw diagrams showing how numbers are connected.
+    \item \texttt{matplotlib.pyplot (plt)}: Used to make plots and graphs.
+\end{itemize}
+
+\subsection{2. The Value Class: The Heart of Everything}
+\begin{lstlisting}[language=Python]
+class Value:
+    def __init__(self, data, _children=(), _op='', _label=''):
+        self.data = data
+        self._prev = set(_children)
+        self._op = _op
+        self._label = _label
+        self.grad = 0.0
+        self._backward = lambda:None
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item \texttt{data}: The actual number we are working with.
+    \item \texttt{\_prev}: The numbers that were used to make this one (its parents).
+    \item \texttt{\_op}: What operation made this number? (e.g., +, *)
+    \item \texttt{\_label}: A name for this number, just for us to keep track.
+    \item \texttt{grad}: How much this number affects the final result (used for learning).
+    \item \texttt{\_backward}: A recipe for how to send influence (gradients) backward.
+\end{itemize}
+
+\subsection{3. Printing and Adding Numbers}
+\begin{lstlisting}[language=Python]
+    def __repr__(self):
+        return f"Value(data={self.data})"
+
+    def __add__(self, other):
+        out = Value(self.data + other.data, (self, other), "+")
+        def _backward():
+            self.grad += 1.0*out.grad
+            other.grad += 1.0*out.grad
+        out._backward = _backward
+        return out
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item \texttt{\_\_repr\_\_}: Lets us print the Value nicely.
+    \item \texttt{\_\_add\_\_}: Lets us add two Value numbers together. It also sets up how to send influence backward for learning.
+\end{itemize}
+
+\subsection{4. Multiplying Numbers}
+\begin{lstlisting}[language=Python]
+    def __mul__(self, other):
+        out = Value(self.data * other.data, (self, other), '*')
+        def _backward():
+            self.grad += other.data*out.grad
+            other.grad += self.data*out.grad
+        out._backward = _backward
+        return out
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item \texttt{\_\_mul\_\_}: Multiplies two numbers and sets up the backward recipe for learning.
+\end{itemize}
+
+\subsection{5. Tanh Activation: Squashing the Number}
+\begin{lstlisting}[language=Python]
+    def tanh(self):
+        n = self.data
+        t = ((math.exp(2*n)-1)/(math.exp(2*n)+1))
+        out=Value(t,(self, ),"tanh")
+        def _backward():
+            self.grad += (1-t**2)*out.grad
+        out._backward = _backward
+        return out
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item \texttt{tanh}: Squashes the number between -1 and 1. This is useful for neural networks to keep numbers manageable.
+\end{itemize}
+
+% The backward recipe uses the derivative of tanh:
+\begin{equation*}
+1 - \tanh^2(x)
+\end{equation*}
+
+\subsection{6. Backward Pass: Sending Influence Backwards}
+\begin{lstlisting}[language=Python]
+    def backward(self):
+        topo = []
+        visited = set()
+        def build_topo(v):
+            if v not in visited:
+                visited.add(v)
+                for child in v._prev:
+                    build_topo(child)
+                topo.append(v)
+        build_topo(self)
+        self.grad = 1.0
+        for node in reversed(topo):
+            node._backward()
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item This function figures out the order to send gradients backward so every number gets its correct influence.
+    \item It starts from the final result and works backward through all the numbers.
+\end{itemize}
+
+\subsection{7. Creating Input Values}
+\begin{lstlisting}[language=Python]
+a = Value(2.0, _label='a')
+b = Value(-3.0, _label='b')
+c = Value(10.0, _label='c')
+f = Value(-2.0, _label='f')
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item We create four numbers: a, b, c, and f. Each is wrapped in a Value object so we can track its history and influence.
+    \item \verb|_label| is just a name to help us keep track of which number is which.
+\end{itemize}
+
+\subsection{8. Forward Pass: Calculating the Output}
+\begin{lstlisting}[language=Python]
+e = a * b
+e._label = "e"
+d = e + c
+d._label = 'd'
+L = d * f
+L._label = 'L'
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item We combine our numbers using multiplication and addition, just like you would in math class.
+    \item Each step creates a new Value object, which remembers how it was made.
+    \item \texttt{L} is our final output, the result of all these operations.
+\end{itemize}
+
+\subsection{9. Visualizing the Computation Graph}
+\begin{lstlisting}[language=Python]
+from graphviz import Digraph
+
+def trace(root):
+    nodes, edges = set(), set()
+    def build(v):
+        if v not in nodes:
+            nodes.add(v)
+            for child in v._prev:
+                edges.add((child, v))
+                build(child)
+    build(root)
+    return nodes, edges
+
+def draw_dot(root):
+    dot = Digraph(format='svg', graph_attr={"rankdir": "LR"})
+    nodes, edges = trace(root)
+    for n in nodes:
+        uid = str(id(n))
+        dot.node(name=uid, label="{%s | data %.4f | grad %.4f}" % (n._label, n.data, n.grad), shape='record')
+        if n._op:
+            dot.node(name=uid + n._op, label=n._op)
+            dot.edge(uid + n._op, uid)
+    for n1, n2 in edges:
+        dot.edge(str(id(n1)), str(id(n2)) + n2._op)
+    return dot
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item This code draws a picture showing how all our numbers are connected.
+    \item Each box shows a number, its value, and its gradient.
+    \item Arrows show which numbers were used to make other numbers.
+\end{itemize}
+
+\subsection{10. Drawing the Graph}
+\begin{lstlisting}[language=Python]
+draw_dot(L)
+\end{lstlisting}
+\textbf{Explanation:} This draws the computation graph for our final output L, so we can see the "paper trail" of calculations.
+
+\subsection{11. Gradient Descent: Learning by Nudging}
+\begin{lstlisting}[language=Python]
+learning_rate = 0.01
+
+a.data += learning_rate * a.grad
+b.data += learning_rate * b.grad
+c.data += learning_rate * c.grad
+f.data += learning_rate * f.grad
+
+# Recompute forward pass
+e = a * b
+d = e + c
+L = d * f
+
+print(L.data)
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item \texttt{learning\_rate}: A small number that controls how much we change our values to improve the result.
+    \item We "nudge" each number in the direction that makes the output better (lower or higher, depending on our goal).
+    \item After nudging, we recalculate everything to see the new result.
+    \item \texttt{print(L.data)} shows us the new output after learning.
+\end{itemize}
+
+\subsection{12. Manual Gradients: Setting Influence by Hand}
+\begin{lstlisting}[language=Python]
+L.grad = 1.0
+d.grad = -2.0
+f.grad = 4.0
+e.grad = -2.0
+c.grad = -2.0
+a.grad = 6.0
+b.grad = -4.0
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item Here, we set the gradients (influence) for each number by hand, as if we calculated them ourselves.
+    \item This is useful for understanding how each number affects the final result.
+\end{itemize}
+
+\subsection{13. Plotting the Tanh Function}
+\begin{lstlisting}[language=Python]
+plt.plot(np.arange(-5,5,0.2),np.tanh(np.arange(-5,5,0.2)))
+plt.grid()
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item This draws a graph of the tanh function, showing how it squashes numbers between -1 and 1.
+    \item The grid helps us see the shape of the curve.
+\end{itemize}
+
+\subsection{14. Building a Simple Neuron}
+\begin{lstlisting}[language=Python]
+#inputs X1,X2
+x1 = Value(2.0, _label="x1")
+x2 = Value(0.0, _label="x2")
+#weights 
+w1 = Value(-3.0, _label="w1")
+w2 = Value(1.0, _label="w2")
+#bias of the neuron
+b = Value(6.8813735, _label="bias")
+x1w1 = x1 * w1; x1w1._label = "x1*w1"
+x2w2 = x2 * w2; x2w2._label = "x2*w2"
+x1w1x2w2 = x1w1 + x2w2; x1w1x2w2._label = "x1*w1 + x2*w2"
+n = x1w1x2w2 + b; n._label = "n"
+o = n.tanh(); o._label = "o"
+\end{lstlisting}
+\textbf{Explanation:}
+\begin{itemize}
+    \item \texttt{x1}, \texttt{x2}: These are the inputs to our neuron (like features in a dataset).
+    \item \texttt{w1}, \texttt{w2}: These are weights, which tell us how important each input is.
+    \item \texttt{b}: The bias, which shifts the output up or down.
+    \item We multiply each input by its weight, add them together, and add the bias.
+    \item \texttt{n}: The total input to the neuron before activation.
+    \item \texttt{o}: The output after applying the tanh activation, squashing the result between -1 and 1.
+\end{itemize}
+
+\subsection{15. Visualizing the Neuron}
+\begin{lstlisting}[language=Python]
+draw_dot(o)
+\end{lstlisting}
+\textbf{Explanation:} This draws the computation graph for the neuron's output, showing all the steps and connections.
+
 \end{document}

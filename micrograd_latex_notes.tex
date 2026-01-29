@@ -1,0 +1,158 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tcolorbox}
+\usepackage{hyperref}
+
+% Define colors for code
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\title{\textbf{Backpropagation from Scratch: A Beginner's Guide}}
+\author{A Deep Dive into the Micrograd Engine}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{The Core Concept: The ``Paper Trail''}
+In standard programming, if you calculate $c = a + b$, the computer gives you the result and immediately forgets how it got there. In Deep Learning, we need the computer to remember.
+
+Think of our \texttt{Value} object as a piece of paper that records:
+\begin{enumerate}
+    \item \textbf{The Data:} The current number (e.g., 5.0).
+    \item \textbf{The Ancestry:} Which other pieces of paper were used to calculate this one?
+    \item \textbf{The Operation:} Was it addition? Multiplication? 
+    \item \textbf{The Gradient:} How much does this specific number affect the final result?
+\end{enumerate}
+
+\subsection{The Chain Rule (The Secret Sauce)}
+The entire engine relies on the \textbf{Chain Rule}. If $z$ depends on $y$, and $y$ depends on $x$, then the influence of $x$ on $z$ is:
+$$\frac{dz}{dx} = \frac{dz}{dy} \cdot \frac{dy}{dx}$$
+In our code, \texttt{self.grad} represents $\frac{dL}{d(\text{self})}$, where $L$ is the final output.
+
+\section{The Implementation: Line-by-Line}
+
+\subsection{1. The Constructor}
+We initialize every number with a gradient of $0$. We don't know the influence yet!
+\begin{lstlisting}[language=Python]
+class Value:
+    def __init__(self, data, _children=(), _op='', _label=''):
+        self.data = data
+        self.grad = 0.0 # Initially, this number has no known impact
+        self._prev = set(_children) # The "parents"
+        self._backward = lambda: None # Empty "recipe" for math
+\end{lstlisting}
+
+\subsection{2. Addition: Passing the Influence}
+When we add two numbers, $out = a + b$, the derivative of $out$ with respect to $a$ is just $1$. So, $a$ simply inherits whatever gradient $out$ has.
+\begin{lstlisting}[language=Python]
+def __add__(self, other):
+    other = other if isinstance(other, Value) else Value(other)
+    out = Value(self.data + other.data, (self, other), '+')
+    
+    def _backward():
+        self.grad += 1.0 * out.grad
+        other.grad += 1.0 * out.grad
+    out._backward = _backward
+    return out
+\end{lstlisting}
+\textit{Note: We use \texttt{+=} because if a variable is used twice, its gradients should accumulate (add up).}
+
+\subsection{3. Multiplication: The Switcheroo}
+If $out = a \cdot b$, the derivative with respect to $a$ is $b$.
+\begin{lstlisting}[language=Python]
+def __mul__(self, other):
+    other = other if isinstance(other, Value) else Value(other)
+    out = Value(self.data * other.data, (self, other), '*')
+    
+    def _backward():
+        self.grad += other.data * out.grad
+        other.grad += self.data * out.grad
+    out._backward = _backward
+    return out
+\end{lstlisting}
+
+\section{The ``Brain'' of the Operation: Topological Sort}
+We cannot calculate a parent's gradient until we have calculated the child's gradient. To do this, we lay all our ``pieces of paper'' out in a line such that every parent comes \textbf{after} its children. Then, we walk through that line backwards.
+
+\section{Full Code Listing}
+\begin{lstlisting}[language=Python]
+import math
+
+class Value:
+    def __init__(self, data, _children=(), _op='', label=''):
+        self.data = data
+        self.grad = 0.0
+        self._backward = lambda: None
+        self._prev = set(_children)
+        self._op = _op
+        self.label = label
+
+    def __add__(self, other):
+        other = other if isinstance(other, Value) else Value(other)
+        out = Value(self.data + other.data, (self, other), '+')
+        def _backward():
+            self.grad += 1.0 * out.grad
+            other.grad += 1.0 * out.grad
+        out._backward = _backward
+        return out
+
+    def __mul__(self, other):
+        other = other if isinstance(other, Value) else Value(other)
+        out = Value(self.data * other.data, (self, other), '*')
+        def _backward():
+            self.grad += other.data * out.grad
+            other.grad += self.data * out.grad
+        out._backward = _backward
+        return out
+
+    def tanh(self):
+        x = self.data
+        t = (math.exp(2*x) - 1)/(math.exp(2*x) + 1)
+        out = Value(t, (self, ), 'tanh')
+        def _backward():
+            self.grad += (1 - t**2) * out.grad
+        out._backward = _backward
+        return out
+
+    def backward(self):
+        topo = []
+        visited = set()
+        def build_topo(v):
+            if v not in visited:
+                visited.add(v)
+                for child in v._prev:
+                    build_topo(child)
+                topo.append(v)
+        build_topo(self)
+        self.grad = 1.0
+        for node in reversed(topo):
+            node._backward()
+\end{lstlisting}
+
+\end{document}

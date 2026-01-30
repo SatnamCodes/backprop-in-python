@@ -2,28 +2,14 @@
 \providecommand\hyper@newdestlabel[2]{}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
-\@writefile{toc}{\contentsline {section}{\numberline {1}The Core Concept: The ``Paper Trail''}{1}{section.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}The Chain Rule (The Secret Sauce)}{1}{subsection.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2}The Implementation: Line-by-Line}{1}{section.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}1. The Constructor}{1}{subsection.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}2. Addition: Passing the Influence}{1}{subsection.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}3. Multiplication: The Switcheroo}{2}{subsection.2.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}The ``Brain'' of the Operation: Topological Sort}{2}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}Full Code Listing}{2}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}Step-by-Step Explanation of the Micrograd Notebook}{3}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}1. Importing Libraries}{3}{subsection.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}2. The Value Class: The Heart of Everything}{3}{subsection.5.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}3. Printing and Adding Numbers}{4}{subsection.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}4. Multiplying Numbers}{4}{subsection.5.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}5. Tanh Activation: Squashing the Number}{5}{subsection.5.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}6. Backward Pass: Sending Influence Backwards}{5}{subsection.5.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}7. Creating Input Values}{5}{subsection.5.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.8}8. Forward Pass: Calculating the Output}{6}{subsection.5.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.9}9. Visualizing the Computation Graph}{6}{subsection.5.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.10}10. Drawing the Graph}{6}{subsection.5.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.11}11. Gradient Descent: Learning by Nudging}{7}{subsection.5.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.12}12. Manual Gradients: Setting Influence by Hand}{7}{subsection.5.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.13}13. Plotting the Tanh Function}{7}{subsection.5.13}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.14}14. Building a Simple Neuron}{8}{subsection.5.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.15}15. Visualizing the Neuron}{8}{subsection.5.15}\protected@file@percent }
-\gdef \@abspage@last{8}
+\@writefile{toc}{\contentsline {section}{\numberline {1}The Core Idea: Sensitivity}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Step 1: The "Smart Box" (\texttt  {Value} class)}{1}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Step 2: Defining the Example}{1}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Step 3: Line-by-Line Walkthrough}{1}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}The Forward Pass (Left to Right)}{1}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}The Backward Pass (Right to Left)}{2}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{1. Influence of $d$ and $f$ on $L$}{2}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{2. Influence of $e$ and $c$ on $d$}{2}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{3. Influence of $a$ and $b$ on $e$}{2}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Conclusion}{2}{section.5}\protected@file@percent }
+\gdef \@abspage@last{2}
